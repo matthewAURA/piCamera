@@ -13,8 +13,6 @@ class blobObject:
         
     def __cmp__(self,other):
         return cmp(self.radius,other.radius)
-
-
 class lineObject:
     def __init__(self,pt1,pt2):
         self.pt1 = pt1

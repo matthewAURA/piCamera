@@ -11,12 +11,19 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 // want these to be as small/large as possible without hitting the hard stop
 // for max range. You'll have to tweak them as necessary to match the servos you
 // have!
-#define SERVOMIN  175 // this is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  600 // this is the 'maximum' pulse length count (out of 4096)
+#define H_SERVOMIN  180 // this is the 'minimum' pulse length count (out of 4096)
+#define H_SERVOMAX  650   // this is the 'maximum' pulse length count (out of 4096)
+#define V_SERVOMIN 180
+#define V_SERVOMAX 650
+
+#define V_SPEED 3
+#define H_SPEED 3
 
 // our servo # counter
 uint8_t servonum = 0;
-uint8_t servoPos = SERVOMIN;
+int hServoPos = (H_SERVOMIN+H_SERVOMAX)/2;
+int vServoPos = V_SERVOMAX;
+
 char buffer;
 void setup() {
   Serial.begin(9600);
@@ -41,10 +48,10 @@ void setServoPulse(uint8_t n, double pulse) {
   pwm.setPWM(n, 0, pulse);
 }
 
-//Sets the servo position between 0-255
-void setServoPos(short pos,uint8_t number){
-  uint16_t pulseLen = ((double)pos/(double)256.0) * (SERVOMAX-SERVOMIN) + SERVOMIN;
-  pwm.setPWM(number,0,pulseLen);
+//Sets the servo position between 0-2H_SPEEDH_SPEED
+void setServoPos(int pos,uint8_t number){
+  //uint16_t pulseLen = ((double)pos/(double)2H_SPEED6.0) * (H_SERVOMAX-H_SERVOMIN) + H_SERVOMIN;
+  pwm.setPWM(number,0,pos);
 }
 
 void loop() {
@@ -53,11 +60,32 @@ void loop() {
     while (Serial.available() > 0){
       buffer = Serial.read();
       if (buffer =='a'){
-        servoPos -= 1;
+        if (hServoPos > H_SERVOMIN+H_SPEED){
+          hServoPos -= H_SPEED;
+        }else{
+          hServoPos = H_SERVOMIN;
+        }
       }else if (buffer == 'd'){
-        servoPos += 1;
+        if (hServoPos < H_SERVOMAX-H_SPEED  ){
+          hServoPos += H_SPEED;
+        }else{
+          hServoPos = H_SERVOMAX;
+        }
+      }else if (buffer == 'w'){
+        if (vServoPos < V_SERVOMAX-V_SPEED  ){
+          vServoPos += V_SPEED;
+        }else{
+          vServoPos = H_SERVOMAX;
+        }
+      }else if (buffer == 's'){
+        if (vServoPos < V_SERVOMAX+V_SPEED  ){
+          vServoPos -= V_SPEED;
+        }else{
+          vServoPos = V_SERVOMAX;
+        }
       }
     }
-    setServoPos(servoPos,0);
+    setServoPos(hServoPos,0);
+    setServoPos(vServoPos,1);
   }
 }

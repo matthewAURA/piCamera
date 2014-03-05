@@ -1,6 +1,6 @@
 
 #include <Wire.h>
-#include "Adafruit_PWMServoDriver.h"
+#include <Adafruit_PWMServoDriver.h>
 
 // called this way, it uses the default address 0x40
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
@@ -16,10 +16,12 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 // our servo # counter
 uint8_t servonum = 0;
-uint8_t servoPos;
+
 void setup() {
   Serial.begin(9600);
-   pwm.begin();
+  Serial.println("16 channel Servo test!");
+
+  pwm.begin();
   
   pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
 }
@@ -40,18 +42,17 @@ void setServoPulse(uint8_t n, double pulse) {
   pwm.setPWM(n, 0, pulse);
 }
 
-//Sets the servo position between 0-255
-void setServoPos(short pos,uint8_t number){
-  uint16_t pulseLen = ((double)pos/(double)256.0) * (SERVOMAX-SERVOMIN) + SERVOMIN;
-  pwm.setPWM(number,0,pulseLen);
-}
-
 void loop() {
- 
-  if (Serial.available() > 0){
-    servoPos = Serial.parseInt();
-    Serial.println(servoPos);
-    setServoPos(servoPos,0);
+  // Drive each servo one at a time
+  Serial.println(servonum);
+  for (uint16_t pulselen = SERVOMIN; pulselen < SERVOMAX; pulselen++) {
+    pwm.setPWM(servonum, 0, pulselen);
   }
-  delay(10);
+  delay(500);
+  for (uint16_t pulselen = SERVOMAX; pulselen > SERVOMIN; pulselen--) {
+    pwm.setPWM(servonum, 0, pulselen);
+  }
+  delay(500);
+
+  if (servonum > 15) servonum = 0;
 }
