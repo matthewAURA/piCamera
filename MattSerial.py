@@ -4,9 +4,13 @@ import math
 
 
 
-class ArduinoController:
-    def __init__(self):
-        self.ser = serial.Serial("/dev/ttyACM0",9600,timeout=3)			
+class SerialController:
+    def __init__(self,serialPort,baud):
+        self.ser = serial.Serial(serialPort,baud,timeout=3)			
+        self.notifier = 'i'
+
+    def setNotifier(self,notifier):
+        self.notifier = notifier
 
     def splitInt(self,integer):
         #convert number into bytes
@@ -22,7 +26,8 @@ class ArduinoController:
 
     def sendInt(self,integer):
         shorts = self.splitInt(integer)
-        self.ser.write('i')
+        self.ser.write(self.notifier)
         self.ser.write(chr(len(shorts)))
         for i in shorts:
             self.ser.write(chr(i))
+

@@ -36,5 +36,6 @@ class ArduinoController:
     def sendInt(self,integer):
         shorts = self.splitInt(integer)
         self.ser.write('i')
+        self.ser.write(chr(len(shorts)))
         for i in shorts:
             self.ser.write(chr(i))
