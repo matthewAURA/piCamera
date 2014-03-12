@@ -1,0 +1,32 @@
+/*
+ * BlobObject.h
+ *
+ *  Created on: 25/05/2013
+ *      Author: matthew
+ */
+
+#ifndef OPENCV_LIB
+#define OPENCV_LIB
+
+#include <iostream>                        // std::cout
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include <math.h>
+#include <vector>
+
+using namespace std;
+using namespace cv;
+
+#endif
+
+
+class BlobObject{
+	private:
+	    Point2f centre;
+        int radius;	
+	public:
+    BlobObject(Point2f inputCentre, int inputRadius);
+    bool operator<(BlobObject other) 
+    int compare(BlobObject other);
+	void display(Mat raw);
+};

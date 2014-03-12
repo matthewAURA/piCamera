@@ -42,8 +42,8 @@ def onMouse(event,x,y,flags,userData):
         
         
 #Dimentions of Capture window
-width = 640/4
-height = 480/4
+width = 640/2
+height = 480/2
 
 #Open capture device
 device = 1 # assume we want first device

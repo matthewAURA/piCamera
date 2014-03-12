@@ -66,7 +66,8 @@ class imageProccessor:
         
 
         #Equalize A histogram for better contrast
-        self.frame = cv2.equalizeHist(temp)  
+        self.frame = temp        
+        #self.frame = cv2.equalizeHist(temp)  
         
               
     def fillHoles(self):                
