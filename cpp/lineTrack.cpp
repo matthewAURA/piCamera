@@ -20,21 +20,23 @@ int main(){
 	//Open capture device
 	int device = 0; //assume we want first device
 
-	bool gui = true;
+	bool gui = false;
 	bool record = false;
 
 	//create video capture device, set capture area
 	VideoCapture capture = VideoCapture(device);
 	capture.open(device);
-	capture.set(CAP_PROP_FRAME_WIDTH,width);
-	capture.set(CAP_PROP_FRAME_HEIGHT,height);
+	capture.set(CV_CAP_PROP_FRAME_WIDTH,width);
+	capture.set(CV_CAP_PROP_FRAME_HEIGHT,height);
 
 
 	//create recording object
 	VideoWriter *recorder;
-	//recorder = new VideoWriter ("test.avi",cv::CV_F FOURCC('D','I','V','X'), 30,Point(width,height));
+	if (record){
+	recorder = new VideoWriter ("test.avi",CV_FOURCC('D','I','V','X'), 30,Point(width,height));
 	if (!recorder->isOpened() && record){
 		return 0;
+	}
 	}
 
 
