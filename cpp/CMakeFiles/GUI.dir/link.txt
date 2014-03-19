@@ -1,1 +1,0 @@
-/usr/bin/c++       CMakeFiles/GUI.dir/GUI.cpp.o  -o GUI -rdynamic 

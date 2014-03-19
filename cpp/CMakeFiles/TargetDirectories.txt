@@ -1,2 +1,0 @@
-/home/matthew/code/piCamera/cpp/CMakeFiles/DebugGUI.dir
-/home/matthew/code/piCamera/cpp/CMakeFiles/lineTrack.dir
