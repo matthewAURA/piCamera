@@ -4,7 +4,6 @@
 #define LINUX
 
 #include "LineObject.h"
-#include "GUI.h"
 #include "LineFinder.h"
 #include "timer.h"
 #include "math.h"
@@ -40,8 +39,6 @@ int main(){
 	//Open capture device
 	int device = 0; //assume we want first device
 
-	bool gui = true;
-	bool record = false;
 
 	//create video capture device, set capture area
 	VideoCapture capture = VideoCapture(device);
@@ -50,21 +47,8 @@ int main(){
 	capture.set(CV_CAP_PROP_FRAME_HEIGHT,height);
 
 
-	//create recording object
-	VideoWriter *recorder;
-	if (record){
-	recorder = new VideoWriter ("test.avi",CV_FOURCC('D','I','V','X'), 30,Point(width,height));
-	if (!recorder->isOpened() && record){
-		return 0;
-	}
-	}
-
-
-	//Construct GUI object
-	DebugGUI myGUI = DebugGUI(gui);
-
 	//create image processing objects
-	LineFinder imgproc = LineFinder(myGUI.getHSV(),scale);
+	LineFinder imgproc = LineFinder(scale);
 	//imgproc.configWebcam("line");
 	if(capture.isOpened()){  //check if we succeeded
 		Mat raw;
@@ -79,49 +63,18 @@ int main(){
 				break;
 			}
 			capture >> raw;
-
-			if (gui){
-                setMouseCallback("Raw",onMouse,&raw);
-				imgproc.setFrame(raw.clone());
-			}else{
-				imgproc.setFrame(raw);
-			}
-            myGUI.calculateHSV(true);
-			imgproc.setHSV(&myGUI);
-			//imgproc.getGray();
-			imgproc.thresholdHSV();
-			imgproc.fillHoles();
-            imshow("Working",imgproc.getFrame());
-			//imgproc.findObjects();
-			//imgproc.printBiggestObject(raw)
-			//imgproc.findLines();
-			double size =  imgproc.calculateBestGradient();
-			LineObject* drawLine = imgproc.calculateErrorLine(height,width);
-			if (drawLine != 0){
-				lineSize = drawLine->size();
-			}else{
-				lineSize = 0;
-			}
-			if (gui){
-				imgproc.drawErrorLine(raw,height,width);
-				imgproc.printLines(raw);
-			}
-			//print (1/(time2-time1))
-
+            cvtColor(raw,raw,CV_BGR2GRAY);
+			imgproc.setFrame(raw);
+            imgproc.findLines();
+            imgproc.printLines(raw);
+            imshow("raw",raw);
             stop_time = GetTimeMs64();
-			cout << "FPS: "  <<  1000/(stop_time - start_time) << endl;
+			cout << imgproc.calculateBestGradient() << endl;
 #ifdef time
-
+            cout << "FPS: "  <<  1000/(stop_time - start_time) << endl;
 #else
 			//cout << "Gradient: " << size << " " << "Offset: " << lineSize  << endl;
 #endif
-			
-			if (gui){
-				imshow("Raw",raw);
-			}
-			if (record){
-				recorder->write(raw);
-			}
 			if(waitKey(30) >= 0){
 				return 0;
 			}
