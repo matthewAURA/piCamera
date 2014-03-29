@@ -15,6 +15,42 @@ class blobObject:
         return cmp(self.radius,other.radius)
 
 
+class Point:
+    def __init__(self,x,y):
+        self.x = x
+        self.y = y
+
+    def length(self):
+        return math.sqrt(self.x**2 + self.y**2)
+
+    def dotProduct(self,other):
+        return self.x*other.x + self.y*other.y
+
+    def angle(self,other):
+        return math.acos(self.dotProduct(other)/(self.length()*other.length()))
+
+    def toTuple(self):
+        return (self.x,self.y)
+
+class CartesianPlane:
+    def __init__(self,width,height):
+        self.vectors = []
+        self.plane = np.zeros([width,height,3], dtype=np.uint8)
+        self.width = width
+        self.height = height
+    
+    def convertCoords(self,point):
+        return (point.x+self.width/2,self.height/2-point.y)
+
+    def drawAll(self):
+        for point in self.vectors:
+            cv2.line(self.plane,self.convertCoords(point.pt1),self.convertCoords(point.pt2),(255,255,255),2)
+        #draw coordinate axes
+        cv2.line(self.plane,self.convertCoords(Point(0,self.height)),self.convertCoords(Point(0,-self.height)),(0,255,0),1)
+        cv2.line(self.plane,self.convertCoords(Point(-self.width,0)),self.convertCoords(Point(self.width,0)),(0,255,0),1)
+        cv2.imshow("plane",self.plane)
+
+
 class lineObject:
     def __init__(self,pt1,pt2):
         self.pt1 = pt1
@@ -24,7 +60,8 @@ class lineObject:
         return cmp(len(self),len(other))
         
     def __len__(self):
-        return int(math.sqrt((self.pt1[0] - self.pt2[0])**2 + (self.pt1[1] - self.pt2[1])**2))   
+        return int(math.sqrt((self.pt1.x - self.pt2.x)**2 + (self.pt1.y - self.pt2.y)**2))
+
          
 class imageProccessor:
     def __init__(self,valHSV):        
@@ -56,14 +93,13 @@ class imageProccessor:
         self.frame = cv2.cvtColor(self.frame,cv2.cv.CV_BGR2HSV)
         #check for inverted ranges
         size = self.frame.shape[0], self.frame.shape[1]
-        temp = np.ones(size, dtype=np.uint8)
+        temp = np.ones(size, dtype=np.uint8)*255
         for i in range(3):
             if (self.valHSV[i] < self.valHSV[i+3]):
                 temp = cv2.bitwise_and(cv2.inRange(self.frame[:,:,i],np.array(0),np.array(self.valHSV[i+3])),temp)
                 temp = cv2.bitwise_and(cv2.inRange(self.frame[:,:,i],np.array(self.valHSV[i]),np.array(255)),temp)
             else:
-                temp = cv2.bitwise_and(cv2.inRange(self.frame[:,:,i],np.array(self.valHSV[i+3]),np.array(self.valHSV[i]))[:,:,0],temp)
-        
+                temp = cv2.bitwise_and(cv2.inRange(self.frame[:,:,i],np.array(self.valHSV[i+3]),np.array(self.valHSV[i])),temp)
 
         #Equalize A histogram for better contrast
         self.frame = temp        
@@ -121,12 +157,12 @@ class lineFinder(imageProccessor):
     def __init__(self,valHSV):
         imageProccessor.__init__(self,valHSV)
         
-    def findLines(self):
+    def findLines(self,strength):
         self.points = list()
         #self.frame=  cv2.GaussianBlur( self.frame,(9, 9),2 )
         #Do a Canny edge detection
         self.frame = cv2.Canny(self.frame, 0, 400)
-        self.lines = cv2.HoughLines(self.frame,1, math.pi/180.0, 120, np.array([]), 0, 0)
+        self.lines = cv2.HoughLines(self.frame,1, math.pi/180.0, strength, np.array([]), 0, 0)
         if self.lines is not None:
            for rho,theta in self.lines[0]:
                 a = np.cos(theta)
@@ -137,13 +173,13 @@ class lineFinder(imageProccessor):
                 y1 = int(y0 + 1000*(a)) 
                 x2 = int(x0 - 1000*(-b)) 
                 y2 = int(y0 - 1000*(a))
-                new = lineObject((x1,y1),(x2,y2))
+                new = lineObject(Point(x1,y1),Point(x2,y2))
                 self.points.append(new)
                 
     def printLines(self,raw):
         if len(self.points) > 0:
             for line in self.points:
-                cv2.line(raw,line.pt1,line.pt2,(0,255,0),2)
+                cv2.line(raw,line.pt1.toTuple(),line.pt2.toTuple(),(0,255,0),2)
                 
     
     

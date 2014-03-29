@@ -79,7 +79,7 @@ if gui:
 
 #create image processing objects
 
-imgproc.configWebcam("object")
+#imgproc.configWebcam("object")
 if(capture):  # check if we succeeded
     
         #main loop
@@ -98,9 +98,9 @@ if(capture):  # check if we succeeded
                 
                 imgproc.valHSV = getHSV(gui)
                 imgproc.getHSV()
+                #cv2.imshow("HSV",imgproc.frame)
                 
                 imgproc.fillHoles()
-                cv2.imshow("HSV",imgproc.frame)
                 imgproc.findObjects()
                 imgproc.printBiggestObject(raw)
                 time2 = time.time()
