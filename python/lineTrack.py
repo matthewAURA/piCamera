@@ -47,8 +47,10 @@ height = 480/scale
 #Open capture device
 device = 0 # assume we want first device
 
-gui = True
+gui = False
 record = False
+
+rollingError = []
 
 #create video capture device, set capture area
 capture = cv2.VideoCapture(device)
@@ -63,7 +65,7 @@ if record:
 
 valHSV = getHSV(False)
 
-lineTol = 80
+lineTol = 140
 
 if gui:
     cv2.namedWindow("Raw")
@@ -78,7 +80,7 @@ if gui:
 
 
 #create image processing objects
-imgproc = trackingLib.lineFinder(valHSV)
+imgproc = trackingLib.lineFinder(valHSV,width,height)
 #imgproc.configWebcam("line")
 if(capture):  # check if we succeeded
     
@@ -104,10 +106,18 @@ if(capture):  # check if we succeeded
                 imgproc.fillHoles()
                 #imgproc.findObjects()
                 #imgproc.printBiggestObject(raw)
-                cv2.imshow("filter",imgproc.frame)
-                print lineTol
-                imgproc.findLines(lineTol)
+                
+                imgproc.findLineSegments(lineTol)
                 imgproc.printLines(raw)
+                error = imgproc.drawErrorLines(raw)
+                if error is not None:
+                    if len(rollingError) < 5:
+                        rollingError.append(error.x)
+                    else:
+                        rollingError = (rollingError[1:])
+                        rollingError.append(int(error.x))
+                print np.mean(rollingError)
+                #cv2.imshow("filter",imgproc.frame)
                 time2 = time.time()
                 #print (1/(time2-time1))
                 #size =  imgproc.calculateBestGradient()
@@ -115,8 +125,8 @@ if(capture):  # check if we succeeded
                 if size is not None:
                     print size
                 if gui: 
-					cv2.imshow("Raw",raw)
-                
+                    cv2.imshow("Raw",raw)
+                    #imgproc.plane.drawAll()
                 if record:
                     recorder.write(imgproc.frame)
                 if(cv2.waitKey(30) >= 0) :

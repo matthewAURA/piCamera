@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import sympy as sp
 import random
 import time
 import math
@@ -32,10 +33,20 @@ class Point:
     def toTuple(self):
         return (self.x,self.y)
 
+    def __sub__(self,other):
+        return Point(self.x-other.x,self.y-other.y)
+
+    def __add__(self,other):
+        return Point(self.x+other.x,self.y+other.y)
+    
+    def __div__(self,other):
+        return Point(self.x/other,self.y/other)
+
+
 class CartesianPlane:
     def __init__(self,width,height):
         self.vectors = []
-        self.plane = np.zeros([width,height,3], dtype=np.uint8)
+        self.plane = np.zeros([height,width,3], dtype=np.uint8)
         self.width = width
         self.height = height
     
@@ -49,22 +60,56 @@ class CartesianPlane:
         cv2.line(self.plane,self.convertCoords(Point(0,self.height)),self.convertCoords(Point(0,-self.height)),(0,255,0),1)
         cv2.line(self.plane,self.convertCoords(Point(-self.width,0)),self.convertCoords(Point(self.width,0)),(0,255,0),1)
         cv2.imshow("plane",self.plane)
+        self.vectors = []
+        self.plane = np.zeros([self.height,self.width,3], dtype=np.uint8)
 
 
 class lineObject:
     def __init__(self,pt1,pt2):
         self.pt1 = pt1
-        self.pt2 = pt2 
+        self.pt2 = pt2
+    
+    def dotProduct(self,other):
+        line1 = self.pt2-self.pt1
+        line2 = other.pt2-other.pt1
+        return line1.dotProduct(line2)
         
     def __cmp__(self,other):
         return cmp(len(self),len(other))
-        
+    
+    def length(self):
+        return math.sqrt((self.pt1.x - self.pt2.x)**2 + (self.pt1.y - self.pt2.y)**2)
+    
     def __len__(self):
-        return int(math.sqrt((self.pt1.x - self.pt2.x)**2 + (self.pt1.y - self.pt2.y)**2))
+        return int(self.length())
 
-         
+    def gradient(self):
+        delta = self.pt2 - self.pt1
+        return delta.y/delta.x
+
+    def yAxisCut(self):
+        return self.pt1.y - self.gradient()*self.pt1.x
+
+    def intersection(self,other):
+        x,y = sp.S('x y'.split())
+        eq = [sp.Eq(y,self.gradient()*x+self.yAxisCut()),sp.Eq(y,other.gradient()*x+other.yAxisCut())]
+        return sp.solve(eq)
+
+    def join(self,other):
+        try:
+            angle = math.acos(self.dotProduct(other)/(self.length()*other.length()))
+        except ValueError:
+            angle = 0
+        if (angle*180)/math.pi < 5:
+            return lineObject((self.pt1+other.pt1)/2,(self.pt2+other.pt2)/2)
+        else:
+            return self
+
+
 class imageProccessor:
-    def __init__(self,valHSV):        
+    def __init__(self,valHSV,width,height):
+        self.width = width
+        self.height = height
         self.valHSV = valHSV
         
         
@@ -120,8 +165,8 @@ class imageProccessor:
         
         
 class ballFinder(imageProccessor):
-    def __init__(self,valHSV):
-        imageProccessor.__init__(self,valHSV)
+    def __init__(self,valHSV,width,height):
+        imageProccessor.__init__(self,valHSV,width,height)
         self.minObjectSize = 3
         
     def findObjects(self):
@@ -154,11 +199,12 @@ class ballFinder(imageProccessor):
             
             
 class lineFinder(imageProccessor): 
-    def __init__(self,valHSV):
-        imageProccessor.__init__(self,valHSV)
-        
+    def __init__(self,valHSV,width,height):
+        imageProccessor.__init__(self,valHSV,width,height)
+        self.plane = CartesianPlane(width,height)
     def findLines(self,strength):
         self.points = list()
+        self.intersections = []
         #self.frame=  cv2.GaussianBlur( self.frame,(9, 9),2 )
         #Do a Canny edge detection
         self.frame = cv2.Canny(self.frame, 0, 400)
@@ -173,15 +219,46 @@ class lineFinder(imageProccessor):
                 y1 = int(y0 + 1000*(a)) 
                 x2 = int(x0 - 1000*(-b)) 
                 y2 = int(y0 - 1000*(a))
+                #new = lineObject(Point(0,yAxisCut),Point(self.width,gradient*self.width+yAxisCut))
                 new = lineObject(Point(x1,y1),Point(x2,y2))
-                self.points.append(new)
-                
+                if (len(self.points) > 0):
+                    for other in self.points:
+                        try:
+                            if (math.acos(new.dotProduct(other)/(new.length()*other.length())) > 20):
+                                self.points.append(new)
+                        except ValueError:
+                            pass
+                else:
+                    self.points.append(new)
+
+    def findLineSegments(self,strength):
+        self.lines = []
+        self.points = []
+        self.frame = cv2.Canny(self.frame,0,400)
+        self.lines = cv2.HoughLinesP(self.frame,1,math.pi/180,strength+1,np.array([]),20,400)
+        if self.lines is not None:
+            for line in self.lines[0]:
+                line = lineObject(Point(line[0],line[1]),Point(line[2],line[3]))
+                self.points.append(line)
+                self.plane.vectors.append(line)
+
+            #Get two longest lines
+            self.points.sort()
+            if (len(self.points) >= 2):
+                self.points = [self.points[0].join(self.points[1])]
     def printLines(self,raw):
         if len(self.points) > 0:
             for line in self.points:
                 cv2.line(raw,line.pt1.toTuple(),line.pt2.toTuple(),(0,255,0),2)
-                
-    
+
+    def drawErrorLines(self,raw):
+        if len(self.points) > 0:
+            for line in self.points:
+                #calc line midpoint
+                midpoint = (line.pt1+line.pt2)/2
+                cv2.circle(raw,midpoint.toTuple(),5,(255,0,0),2)
+                cv2.line(raw,(self.width/2,self.height/2),(midpoint.toTuple()[0],self.height/2),(0,0,255),2)
+            return Point(midpoint.x-self.width/2,self.height/2)
     
     #def printLines(self):
      #   if self.lines is not None:
@@ -190,18 +267,7 @@ class lineFinder(imageProccessor):
         #    for i in range(b):
          #       cv2.line(raw, (self.lines[0][i][0], self.lines[0][i][1]), (self.lines[0][i][2], self.lines[0][i][3]), (0, 0, 255), 3, 8)
                 
-                
 
-    def calculateBestGradient(self):
-        gradients = []
-        if len(self.points) > 0:
-            for line in self.points:
-                deltaX = line.pt1[0]-line.pt2[0]
-                deltaY = line.pt1[1]-line.pt2[1]
-                if deltaX is not 0:
-                    gradients.append(float(deltaY)/float(deltaX))
-            if len(gradients) > 0:
-                print (180*(math.atan(max(gradients)))/math.pi)   
                      
 class SerialHandler:  
     def __init__(self):
