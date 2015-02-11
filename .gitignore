@@ -26,6 +26,10 @@ var/
 pip-log.txt
 pip-delete-this-directory.txt
 
+#Cmake
+CMakeCache.txt
+CMakeFiles/
+
 # Unit test / coverage reports
 .tox/
 .coverage
