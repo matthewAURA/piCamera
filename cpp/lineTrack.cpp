@@ -1,7 +1,7 @@
 
 
 //#define time
-#define LINUX
+#define RECORD
 
 #include "LineObject.h"
 #include "GUI.h"
@@ -30,9 +30,13 @@ void onMouse(int event,int x,int y,int,void* param){
 }
 
 
-int main(){
+int main(int argc, char *argv[]){
 	//Dimensions of Capture window
-	int scale = 4;
+    int scale = 1;
+    if (argc > 1){
+        sscanf(argv[1],"%d",&scale);
+        cout << scale << endl;
+    }
 	int width = 640/scale;
 	int height = 480/scale;
 	int lineSize;
@@ -40,7 +44,7 @@ int main(){
 	//Open capture device
 	int device = 0; //assume we want first device
 
-	bool gui = true;
+	bool gui = false;
 	bool record = false;
 
 	//create video capture device, set capture area
@@ -50,6 +54,7 @@ int main(){
 	capture.set(CV_CAP_PROP_FRAME_HEIGHT,height);
 
 
+    
 	//create recording object
 	VideoWriter *recorder;
 	if (record){
@@ -61,10 +66,10 @@ int main(){
 
 
 	//Construct GUI object
-	DebugGUI myGUI = DebugGUI(gui);
-
+    DebugGUI myGUI(gui);
+    
 	//create image processing objects
-	LineFinder imgproc = LineFinder(myGUI.getHSV(),scale);
+	LineFinder imgproc(myGUI.getHSV(),scale);
 	//imgproc.configWebcam("line");
 	if(capture.isOpened()){  //check if we succeeded
 		Mat raw;
@@ -91,7 +96,9 @@ int main(){
 			//imgproc.getGray();
 			imgproc.thresholdHSV();
 			imgproc.fillHoles();
-            imshow("Working",imgproc.getFrame());
+            if (gui){
+                imshow("Working",imgproc.getFrame());
+            }
 			//imgproc.findObjects();
 			//imgproc.printBiggestObject(raw)
 			//imgproc.findLines();

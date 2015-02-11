@@ -45,10 +45,10 @@ int main(){
 	capture.open(device);
 	capture.set(CV_CAP_PROP_FRAME_WIDTH,width);
 	capture.set(CV_CAP_PROP_FRAME_HEIGHT,height);
-
+    vector<int> valHSV;
 
 	//create image processing objects
-	LineFinder imgproc = LineFinder(scale);
+    LineFinder imgproc = LineFinder(valHSV,scale);
 	//imgproc.configWebcam("line");
 	if(capture.isOpened()){  //check if we succeeded
 		Mat raw;
